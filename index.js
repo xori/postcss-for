@@ -1,6 +1,5 @@
 var postcss = require('postcss');
 var list    = require('postcss/lib/list');
-var vars    = require('postcss-simple-vars');
 
 module.exports = postcss.plugin('postcss-for', function (opts) {
     opts = opts || {};
@@ -10,7 +9,7 @@ module.exports = postcss.plugin('postcss-for', function (opts) {
             if (isNaN(parseInt(param)) || !param.match(/^\d+\.?\d*$/)) {
 
                 if (param.indexOf('$') !== -1) {
-                    throw rule.error('Variable cannot be used as a range parameter', { plugin: 'postcss-for' });
+                    return; // we allow variables
                 }
 
                 throw rule.error('Range parameter should be a number', { plugin: 'postcss-for' });
@@ -20,7 +19,7 @@ module.exports = postcss.plugin('postcss-for', function (opts) {
 
     var checkParams = function (rule, params) {
 
-        if (!params[0].match(/(^|[^\w])\$([\w\d-_]+)/) ||
+        if (!params[0].match(/(^|[^\w])\@([\w\d-_]+)/) ||
              params[1] !== 'from' ||
              params[3] !== 'to' ||
              params[5] !== 'by' ^ params[5] === undefined ) {
@@ -28,6 +27,19 @@ module.exports = postcss.plugin('postcss-for', function (opts) {
         }
 
         [params[2], params[4], params[6] || '0'].forEach(checkNumber(rule));
+    };
+
+    var glob = function(iterator, value, nodes) {
+        var reg = new RegExp('@' + iterator, 'g');
+        nodes.forEach(function (node) {
+            for (var prop in node) {
+                if (typeof node[prop] === 'string') {
+                    node[prop] = node[prop].replace(reg, value);
+                } else if (prop === 'nodes') {
+                    glob(iterator, value, node.nodes);
+                }
+            }
+        });
     };
 
     var unrollLoop = function (rule) {
@@ -41,11 +53,9 @@ module.exports = postcss.plugin('postcss-for', function (opts) {
             dir =      top < index ? -1 : 1,
             by =      (params[6] || 1) * dir;
 
-        var value = {};
         for ( var i = index; i * dir <= top * dir; i = i + by ) {
             var content = rule.clone();
-            value[iterator] = i;
-            vars({ only: value })(content);
+            glob(iterator, i, content.nodes);
             rule.parent.insertBefore(rule, content.nodes);
         }
         if ( rule.parent ) rule.removeSelf();
