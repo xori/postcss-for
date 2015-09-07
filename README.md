@@ -2,6 +2,10 @@
 
 [PostCSS] plugin that enables `@for` loop syntax in your CSS.
 
+## Install
+
+    npm install -g postcss-for-var
+
 ## Usage
 
 ```js
