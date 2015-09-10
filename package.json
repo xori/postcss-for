@@ -1,7 +1,7 @@
 {
   "name": "postcss-for-var",
   "version": "1.0.2",
-  "description": "PostCSS plugin that enables SASS-like for loop syntax in your CSS, alongwith variables",
+  "description": "PostCSS plugin that enables SASS-like for loop syntax in your CSS, along with variables",
   "keywords": [
     "postcss",
     "css",
