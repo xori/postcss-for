@@ -1,9 +1,14 @@
-## 2.0.0
+## 1.0.4
 * Update dependencies
-* Bump major version
-
-## 1.1.0
 * Added support for nested loops
+
+## 1.0.3
+* Available on npm via `postcss-for-var`
+
+## 1.0.2
+* Changed the plugin syntax to use `@i` instead of `$i`.
+  I can't see this to ever be compliant with the official PostCSS project as I
+  assume `@anything` is to be considered a rule.
 
 ## 1.0.1
 * Update examples and tests to contain valid CSS
