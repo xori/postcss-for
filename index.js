@@ -1,10 +1,15 @@
 var postcss = require('postcss');
 var list    = require('postcss/lib/list');
+var vars    = require('postcss-simple-vars');
 
 module.exports = postcss.plugin('postcss-for', function (opts) {
-    opts = opts || {};
 
-    var checkNumber = function (rule) {
+    opts = opts || {};
+    opts.nested = opts.nested || true;
+
+    var checkNumber, checkParams, processLoops, glob, unrollLoop;
+
+    checkNumber = function (rule) {
         return function (param) {
             if (isNaN(parseInt(param)) || !param.match(/^\d+\.?\d*$/)) {
 
@@ -17,7 +22,7 @@ module.exports = postcss.plugin('postcss-for', function (opts) {
         };
     };
 
-    var checkParams = function (rule, params) {
+    checkParams = function (rule, params) {
 
         if (!params[0].match(/(^|[^\w])\@([\w\d-_]+)/) ||
              params[1] !== 'from' ||
@@ -29,7 +34,7 @@ module.exports = postcss.plugin('postcss-for', function (opts) {
         [params[2], params[4], params[6] || '0'].forEach(checkNumber(rule));
     };
 
-    var glob = function(iterator, value, nodes) {
+    glob = function(iterator, value, nodes) {
         var reg = new RegExp('@' + iterator, 'g');
         nodes.forEach(function (node) {
             for (var prop in node) {
@@ -42,7 +47,7 @@ module.exports = postcss.plugin('postcss-for', function (opts) {
         });
     };
 
-    var unrollLoop = function (rule) {
+    unrollLoop = function (rule) {
         var params = list.space(rule.params);
 
         checkParams(rule, params);
@@ -53,19 +58,27 @@ module.exports = postcss.plugin('postcss-for', function (opts) {
             dir =      top < index ? -1 : 1,
             by =      (params[6] || 1) * dir;
 
+        var value = {};
         for ( var i = index; i * dir <= top * dir; i = i + by ) {
             var content = rule.clone();
+            if (opts.nested) processLoops(content);
+            value[iterator] = i;
+            vars({ only: value })(content);
             glob(iterator, i, content.nodes);
             rule.parent.insertBefore(rule, content.nodes);
         }
-        if ( rule.parent ) rule.removeSelf();
+        if ( rule.parent ) rule.remove();
     };
 
-    return function (css) {
-        css.eachAtRule(function (rule) {
+    processLoops = function (css) {
+        css.walkAtRules(function (rule) {
             if ( rule.name === 'for' ) {
                 unrollLoop(rule);
             }
         });
+    };
+
+    return function (css) {
+        processLoops(css);
     };
 });
